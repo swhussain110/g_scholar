@@ -39,7 +39,7 @@ This project automates the process of collecting author data from Google Scholar
 
 1. **Clone the repository:**
    ```sh
-   git clone https://github.com/yourusername/g_scholar.git
+   git clone https://github.com/swhussain110/g_scholar.git
    cd g_scholar
    ```
 
