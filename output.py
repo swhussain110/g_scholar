@@ -132,7 +132,7 @@ for filename in os.listdir(folder_path):
                 details.append(data)
 
 # Save the results to a CSV file
-fields = ["author_name", "author_id", "author_affiliation", "first_publication", "first_pb_year", "citations", "hindex", "i10index", "hcore", "total_pubs", "pi"]
+fields = ["author_name", "author_id", "author_affiliation", "first_publication", "first_pb_year", "citations", "hindex", "i10index", "hcore", "total_pubs", "Ψ-Index"]
 
 with open("output_pi.csv", "w", newline="", encoding='utf-8') as csvfile:
     # Create a CSV writer object
