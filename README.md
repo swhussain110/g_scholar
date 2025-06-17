@@ -1,6 +1,6 @@
-# 📚 Google Scholar Author Scraper & Metrics Calculator
+# 📚 Google Scholar Author Metrics Extractor
 
-This project automates the process of collecting author data from Google Scholar and computes advanced bibliometric indices such as the H-index, H-core, and Pi-index. It is designed for researchers, analysts, and institutions interested in analyzing scholarly impact.
+This project automates the extraction of author data from Google Scholar and computes **25+ advanced bibliometric indices** for each author. It is designed for researchers, analysts, and institutions interested in comprehensive scholarly impact analysis.
 
 ---
 
@@ -9,8 +9,9 @@ This project automates the process of collecting author data from Google Scholar
 - **Automated Author Data Collection:**  
   Scrapes author profiles and publication data from Google Scholar using the [`scholarly`](https://github.com/scholarly-python-package/scholarly) library.
 
-- **Advanced Metrics Calculation:**  
-  Computes H-index, H-core, Pi-index, total citations, and more for each author.
+- **Comprehensive Metrics Calculation:**  
+  Calculates 25+ indices, including:
+  - h-index, g-index, hg-index, hc-index, hi-index, hi-norm, AW-index, e-index, hm-index, f-index, p-index, Ψ-Index (Pi-index), k-index, M-quotient, AR-index, Q2-Index, Normalized h-index, Proposed index, a-index, r-index, hg-iIndex, Cites-Year, Authors-Paper, Cites-Paper, total publications, total citations, and more.
 
 - **Batch Processing:**  
   Reads a list of authors from a CSV file and processes them in bulk.
@@ -24,12 +25,12 @@ This project automates the process of collecting author data from Google Scholar
 
 ```
 .
-├── output.py           # Processes JSON data and computes metrics
+├── output.py           # Processes JSON data and computes all metrics
 ├── scrape.py           # Scrapes author data from Google Scholar
 ├── requirements.txt    # Python dependencies
 ├── README.md           # Project documentation
 ├── data/               # Folder for JSON files and intermediate data
-│   └── searched_authors.json
+│   └── [author_id].json
 └── output_pi.csv       # Final output with computed metrics
 ```
 
@@ -39,7 +40,7 @@ This project automates the process of collecting author data from Google Scholar
 
 1. **Clone the repository:**
    ```sh
-   git clone https://github.com/swhussain110/g_scholar.git
+   git clone https://github.com/yourusername/g_scholar.git
    cd g_scholar
    ```
 
@@ -72,18 +73,35 @@ This project automates the process of collecting author data from Google Scholar
 ## 📊 Output
 
 - **output_pi.csv:**  
-  Contains the following columns for each author:
-  - `author_name`
-  - `author_id`
-  - `author_affiliation`
-  - `first_publication`
-  - `first_pb_year`
-  - `citations`
-  - `hindex`
-  - `i10index`
-  - `hcore`
-  - `total_pubs`
-  - `pi`
+  Contains the following columns for each author (among others):
+
+  | Metric Name         | Description |
+  |---------------------|-------------|
+  | hindex              | h-index |
+  | gindex              | g-index |
+  | hgindex             | hg-index (geometric mean of h and g) |
+  | hc-index            | h-core index (sum of citations in h-core) |
+  | hi-index            | Individual h-index (normalized by authors in h-core) |
+  | hi-norm             | Normalized h-index (by authors per paper) |
+  | AW-index            | Age-weighted citation rate |
+  | eindex              | e-index (excess citations in h-core) |
+  | hm-index            | Multi-author h-index |
+  | findex              | f-index |
+  | pindex              | p-index |
+  | Ψ-Index             | Pi-index (Psi-index) |
+  | kindex              | k-index |
+  | M-quotient          | h-index / academic age |
+  | AR-index            | sqrt(h-core citations / academic age) |
+  | Q2-Index            | sqrt(h-index * m-quotient) |
+  | Normalized h-index  | h-index / total publications |
+  | Proposed index      | Mean of h, g, e indices |
+  | aindex              | Average citations in h-core |
+  | rindex              | sqrt(sum of h-core citations) |
+  | hg-iIndex           | Geometric mean of h and g |
+  | Cites-Year          | Citations per year since first publication |
+  | Authors-Paper       | Average authors per paper |
+  | Cites-Paper         | Average citations per paper |
+  | ...                 | ...and more |
 
 ---
 
