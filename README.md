@@ -101,7 +101,6 @@ This project automates the extraction of author data from Google Scholar and com
   | Cites-Year          | Citations per year since first publication |
   | Authors-Paper       | Average authors per paper |
   | Cites-Paper         | Average citations per paper |
-  | ...                 | ...and more |
 
 ---
 
