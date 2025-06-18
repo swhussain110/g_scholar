@@ -11,7 +11,7 @@ This project automates the extraction of author data from Google Scholar and com
 
 - **Comprehensive Metrics Calculation:**  
   Calculates 25 indices, including:
-  - h-index, g-index, hc-index, hi-index, hi-norm, AW-index, e-index, hm-index, f-index, p-index, Ψ-Index, k-index, M-quotient, AR-index, Q2-Index, Normalized h-index, Proposed index, a-index, r-index, hg-Index, Cites-Year, Authors-Paper, Cites-Paper, Publication count, Citation count.
+  - h-index, g-index, hc-index, hi-index, hi-norm, AW-index, e-index, hm-index, f-index, p-index, Ψ-Index, k-index, M-quotient, AR-index, Q2-Index, Normalized h-index, Proposed index, A-index, R-index, hg-Index, Cites-Year, Authors-Paper, Cites-Paper, Publication count, Citation count.
 
 - **Batch Processing:**  
   Reads a list of authors from a CSV file and processes them in bulk.
@@ -74,25 +74,25 @@ This project automates the extraction of author data from Google Scholar and com
 
 - **output_pi.csv:**
 
-  1. hindex  
-  2. gindex  
+  1. h-index  
+  2. g-index  
   3. hc-index  
   4. hi-index  
   5. hi-norm  
   6. AW-index  
   7. e-index  
   8. hm-index  
-  9. findex  
-  10. pindex  
+  9. f-index  
+  10. p-index  
   11. Ψ-Index  
   12. k-index  
   13. M-quotient  
   14. AR-index  
   15. Q2-Index  
   16. Normalized h-index  
-  17. Proposed index  
+  17. Proposed Index  
   18. a-index  
-  19. r-index  
+  19. R-index  
   20. hg-Index  
   21. Cites-Year  
   22. Authors-Paper  
