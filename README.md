@@ -11,7 +11,7 @@ This project automates the extraction of author data from Google Scholar and com
 
 - **Comprehensive Metrics Calculation:**  
   Calculates 25 indices, including:
-  - h-index, g-index, hc-index, hi-index, hi-norm, AW-index, e-index, hm-index, f-index, p-index, Ψ-Index , k-index, M-quotient, AR-index, Q2-Index, Normalized h-index, Proposed index, a-index, r-index, hg-Index, Cites-Year, Authors-Paper, Cites-Paper, Publication count, Citation count.
+  - h-index, g-index, hc-index, hi-index, hi-norm, AW-index, e-index, hm-index, f-index, p-index, Ψ-Index, k-index, M-quotient, AR-index, Q2-Index, Normalized h-index, Proposed index, a-index, r-index, hg-Index, Cites-Year, Authors-Paper, Cites-Paper, Publication count, Citation count.
 
 - **Batch Processing:**  
   Reads a list of authors from a CSV file and processes them in bulk.
@@ -70,41 +70,35 @@ This project automates the extraction of author data from Google Scholar and com
 
 ---
 
-# 📊 Output
+## 📊 Output
 
 - **output_pi.csv:**
 
-1. hindex  
-2. gindex  
-3. hgindex  
-4. hc-index  
-5. hi-index  
-6. hi-norm  
-7. AW-index  
-8. eindex  
-9. hm-index  
-10. findex  
-11. pindex  
-12. Ψ-Index  
-13. kindex  
-14. M-quotient  
-15. AR-index  
-16. Q2-Index  
-17. Normalized h-index  
-18. Proposed index  
-19. aindex  
-20. rindex  
-21. hg-iIndex  
-22. Cites-Year  
-23. Authors-Paper  
-24. Cites-Paper  
-25. total_publications  
-26. total_citations  
-27. total_years  
-28. cites_per_author  
-29. papers_per_author  
-30.
- 
+  1. hindex  
+  2. gindex  
+  3. hc-index  
+  4. hi-index  
+  5. hi-norm  
+  6. AW-index  
+  7. e-index  
+  8. hm-index  
+  9. findex  
+  10. pindex  
+  11. Ψ-Index  
+  12. k-index  
+  13. M-quotient  
+  14. AR-index  
+  15. Q2-Index  
+  16. Normalized h-index  
+  17. Proposed index  
+  18. a-index  
+  19. r-index  
+  20. hg-Index  
+  21. Cites-Year  
+  22. Authors-Paper  
+  23. Cites-Paper  
+  24. Publication count  
+  25. Citation count  
 
 ---
 
