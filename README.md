@@ -91,7 +91,7 @@ This project automates the extraction of author data from Google Scholar and com
   15. Q2-Index  
   16. Normalized h-index  
   17. Proposed Index  
-  18. a-index  
+  18. A-index  
   19. R-index  
   20. hg-Index  
   21. Cites-Year  
