@@ -1,56 +1,63 @@
 import os
 import json
 import csv
-import math
 from datetime import datetime
+import math
 
-folder_path = r"data"
+# Define the path to the folder containing the JSON files
+folder_path = r"data/sample"
+
 details = []
+
+# Get the current year
 current_year = datetime.now().year
 
-def calculate_g_index(citations):
-    citations = sorted(citations, reverse=True)
-    g = 0
-    total = 0
-    for i, c in enumerate(citations, 1):
-        total += c
-        if total >= i * i:
-            g = i
-        else:
-            break
-    return g
+def get_first_publication(publications, cites_per_year):
+    first_publication = None
+    first_pub_year = None
+    for publication in publications:
+        pub_year = publication.get('bib', {}).get('pub_year')
+        try:
+            pub_year_int = int(pub_year)
+            if 1900 <= pub_year_int <= current_year:
+                if first_pub_year is None or pub_year_int < first_pub_year:
+                    first_pub_year = pub_year_int
+                    first_publication = publication.get('bib', {}).get('title', 'N/A')
+        except (ValueError, TypeError):
+            continue
+    if first_pub_year is None and cites_per_year:
+        try:
+            first_pub_year = min(int(year) for year in cites_per_year.keys())
+            first_publication = "Derived from cites_per_year"
+        except Exception:
+            first_pub_year = 'N/A'
+            first_publication = 'N/A'
+    return first_publication if first_publication else 'N/A', first_pub_year if first_pub_year else 'N/A'
 
-def calculate_hg_index(h, g):
-    return math.sqrt(h * g)
+def calculate_hcore(publications, h_index):
+    h_core = 0
+    if h_index > 0:
+        for pub in publications[:h_index]:
+            h_core += pub.get('num_citations', 0)
+    return h_core
 
-def calculate_a_index(citations, h):
-    if h == 0:
-        return 0
-    return sum(sorted(citations, reverse=True)[:h]) / h
+def get_num_citations(publications, year_limit=2019):
+    num_citations = []
+    for publication in publications:
+        pub_year = publication.get('bib', {}).get('pub_year')
+        try:
+            pub_year_int = int(pub_year)
+            if pub_year_int <= year_limit:
+                num_citations.append(publication.get('num_citations', 0))
+        except (ValueError, TypeError):
+            continue
+    return num_citations
 
-def calculate_r_index(citations, h):
-    return math.sqrt(sum(sorted(citations, reverse=True)[:h]))
-
-def calculate_f_index(citations):
-    citations_sorted = sorted(citations, reverse=True)
-    f = 0
-    for i, c in enumerate(citations_sorted, 1):
-        if c >= i:
-            f = i
-        else:
-            break
-    return f
-
-def calculate_p_index(total_citations, total_publications):
-    if total_publications == 0:
-        return 0
-    return (total_citations ** 2 / total_publications) ** (1/3)
-
-def calculate_pi_index(num_citations, hindex):
+def calculate_pi_index(num_citations, h_index):
     p_list = []
     cumulative_citations = []
     if not num_citations:
-        return hindex
+        return 0, p_list, cumulative_citations
     for i in range(len(num_citations)):
         if i == 0:
             p_list.append(1)
@@ -66,239 +73,383 @@ def calculate_pi_index(num_citations, hindex):
         if p_list[i] <= cumulative_citations[i]:
             current_index = i
     pi_index = current_index + 1
-    if pi_index < hindex:
-        pi_index = hindex
-    return pi_index
+    if pi_index < h_index:
+        pi_index = h_index
+    return pi_index, p_list, cumulative_citations
 
-def calculate_k_index(total_citations, citations, h):
-    if h == 0 or len(citations) == 0:
-        return 0
-    citations_sorted = sorted(citations, reverse=True)
-    h_core = sum(citations_sorted[:h])
-    h_tail = sum(citations_sorted[h:])
-    if h_core == 0:
-        return 0
-    return (total_citations / len(citations)) * (h_tail / h_core)
+def count_all_publications(publications):
+    """Returns the total number of publications, regardless of year."""
+    return len(publications)
 
-def calculate_e_index(citations, h):
-    citations_sorted = sorted(citations, reverse=True)
-    e = sum(citations_sorted[:h]) - h * h
-    return math.sqrt(e) if e > 0 else 0
+def calculate_e_index(hcore, hindex):
+    """Calculate the e-index given hcore and hindex."""
+    value = hcore - hindex ** 2
+    return round(math.sqrt(value), 2) if value > 0 else 0.0
 
-def calculate_m_quotient(h, first_pub_year):
-    if not first_pub_year or h == 0:
-        return 0
-    years = current_year - int(first_pub_year) + 1
-    if years <= 0:
-        return 0
-    return h / years
+def calculate_cite_year(total_citations, first_pub_year, current_year):
+    try:
+        years = int(current_year) - int(first_pub_year)
+        if years > 0:
+            return round(total_citations / years, 2)
+        else:
+            return total_citations  # If only one year, return total citations
+    except Exception:
+        return 0.0
 
-def calculate_ar_index(citations, h, first_pub_year):
-    if not first_pub_year or h == 0:
-        return 0
-    years = current_year - int(first_pub_year) + 1
-    if years <= 0:
-        return 0
-    return math.sqrt(sum(sorted(citations, reverse=True)[:h]) / years)
-
-def calculate_q2_index(h, m):
-    return math.sqrt(h * m)
-
-def calculate_normalized_h_index(h, total_publications):
-    if total_publications == 0:
-        return 0
-    return h / total_publications
-
-def calculate_proposed_index(h, g, e):
-    if h and g and e:
-        return (h + g + e) / 3
-    return 0
-
-def calculate_hm_index(publications):
-    citations = []
-    frac_authors = []
+def calculate_authors_paper(publications):
+    total_authors = 0
+    total_pubs = len(publications)
     for pub in publications:
-        n_authors = len(pub.get('bib', {}).get('author', '').split(',')) if pub.get('bib', {}).get('author') else 1
-        citations.append(pub.get('num_citations', 0))
-        frac_authors.append(1 / n_authors)
-    sorted_items = sorted(zip(citations, frac_authors), key=lambda x: x[0], reverse=True)
-    sum_frac = 0
-    hm = 0
-    for i, (c, f) in enumerate(sorted_items):
-        sum_frac += f
-        if c >= sum_frac:
-            hm = sum_frac
+        authors = pub.get('bib', {}).get('author', '')
+        if isinstance(authors, str):
+            # Google Scholar uses ' and ' as separator
+            author_list = [a.strip() for a in authors.split(' and ') if a.strip()]
+            total_authors += len(author_list)
+        elif isinstance(authors, list):
+            total_authors += len(authors)
+    if total_pubs > 0:
+        return round(total_authors / total_pubs, 2)
+    else:
+        return 0.0
+
+def calculate_cites_paper(total_citations, total_pubs):
+    if total_pubs > 0:
+        return round(total_citations / total_pubs, 2)
+    else:
+        return 0.0
+
+def calculate_g_index(publications):
+    # Get citation counts for all publications
+    citations = [pub.get('num_citations', 0) for pub in publications]
+    citations.sort(reverse=True)
+    cumulative = 0
+    g_index = 0
+    for i, c in enumerate(citations, 1):
+        cumulative += c
+        if cumulative >= i * i:
+            g_index = i
         else:
             break
-    return round(hm, 2)
+    return g_index
 
-def calculate_hi_index(publications, h):
-    if h == 0:
-        return 0
-    sorted_pubs = sorted(publications, key=lambda x: x.get('num_citations', 0), reverse=True)[:h]
-    total_authors = 0
-    for pub in sorted_pubs:
-        n_authors = len(pub.get('bib', {}).get('author', '').split(',')) if pub.get('bib', {}).get('author') else 1
-        total_authors += n_authors
-    avg_authors = total_authors / h if h > 0 else 1
-    return round(h / avg_authors, 3) if avg_authors > 0 else 0
+def calculate_hg_index(hindex, gindex):
+    return hindex * gindex
 
-def calculate_hi_norm_index(publications, h):
-    if h == 0:
-        return 0
-    total_authors = 0
-    for pub in publications:
-        n_authors = len(pub.get('bib', {}).get('author', '').split(',')) if pub.get('bib', {}).get('author') else 1
-        total_authors += n_authors
-    avg_authors = total_authors / len(publications) if publications else 1
-    return round(h / avg_authors, 3) if avg_authors > 0 else 0
+def calculate_a_index(hcore, hindex):
+    if hindex > 0:
+        return round(hcore / hindex, 2)
+    else:
+        return 0.0
 
-def calculate_aw_index(publications):
-    aw = 0
+def calculate_r_index(hcore):
+    return round(math.sqrt(hcore), 2) if hcore > 0 else 0.0
+
+def calculate_f_index(publications):
+    citations = sorted([pub.get('num_citations', 0) for pub in publications], reverse=True)
+    f_index = 0
+    for i, c in enumerate(citations, 1):
+        if c >= 2 * i:
+            f_index = i
+        else:
+            break
+    return f_index
+
+def calculate_p_index(total_citations, total_pubs):
+    try:
+        if total_pubs > 0:
+            value = (total_citations ** 2) / total_pubs
+            return round(value ** (1/3), 2)
+        else:
+            return 0.0
+    except Exception:
+        return 0.0
+
+def calculate_k_index(total_citations, total_pubs, hcore):
+    try:
+        if total_pubs > 0 and hcore > 0:
+            return round((total_citations / total_pubs) * ((total_citations - hcore) / hcore), 2)
+        else:
+            return 0.0
+    except Exception:
+        return 0.0
+
+def calculate_m_quotient(hindex, first_pub_year, current_year):
+    try:
+        age = int(current_year) - int(first_pub_year)
+        if age > 0:
+            return hindex / age
+        else:
+            return 0.0
+    except Exception:
+        return 0.0
+    
+
+def calculate_ar_index(hcore, first_pub_year, current_year):
+    try:
+        age = int(current_year) - int(first_pub_year)
+        if age > 0 and hcore > 0:
+            return round(math.sqrt(hcore / age), 2)
+        else:
+            return 0.0
+    except Exception:
+        return 0.0
+
+def calculate_m_index(publications, hindex):
+    if hindex > 0 and len(publications) >= hindex:
+        # Get the citation counts of the h-core (top h) papers
+        hcore_citations = sorted(
+            [pub.get('num_citations', 0) for pub in publications],
+            reverse=True
+        )[:hindex]
+        hcore_citations.sort()
+        n = len(hcore_citations)
+        if n % 2 == 1:
+            return hcore_citations[n // 2]
+        else:
+            return round((hcore_citations[n // 2 - 1] + hcore_citations[n // 2]) / 2, 2)
+    else:
+        return 0.0
+
+def calculate_q2_index(hindex, m_index):
+    try:
+        value = hindex * m_index
+        return round(math.sqrt(value), 2) if value > 0 else 0.0
+    except Exception:
+        return 0.0
+def calculate_normalized_h_index(hindex, total_pubs):
+    if total_pubs > 0:
+        return round(hindex / total_pubs, 3)
+    else:
+        return 0.0
+
+def calculate_proposed_index(hindex, gindex, first_pub_year, current_year):
+    try:
+        age = int(current_year) - int(first_pub_year)
+        if age > 0:
+            return round((hindex * gindex) / age, 2)
+        else:
+            return 0.0
+    except Exception:
+        return 0.0
+
+
+def calculate_hc_index(publications, current_year, gamma=4, delta=1):
+    scores = []
     for pub in publications:
         pub_year = pub.get('bib', {}).get('pub_year')
+        citations = pub.get('num_citations', 0)
         try:
             pub_year = int(pub_year)
             age = current_year - pub_year + 1
-            if age > 0:
-                aw += pub.get('num_citations', 0) / age
-        except Exception:
+            score = gamma * (age ** -delta) * citations
+            scores.append(score)
+        except (ValueError, TypeError):
             continue
-    return round(aw, 2)
+    scores.sort(reverse=True)
+    hc_index = 0
+    for i, score in enumerate(scores, 1):
+        if score >= i:
+            hc_index = i
+        else:
+            break
+    return hc_index
 
+def calculate_hi_index(hindex, avg_authors_per_paper):
+    if avg_authors_per_paper > 0:
+        return round(hindex / avg_authors_per_paper, 2)
+    else:
+        return 0.0
+
+def calculate_hi_norm(publications):
+    # Calculate normalized citations for each paper
+    norm_citations = []
+    for pub in publications:
+        citations = pub.get('num_citations', 0)
+        authors = pub.get('bib', {}).get('author', '')
+        if isinstance(authors, str):
+            author_list = [a.strip() for a in authors.split(' and ') if a.strip()]
+            n_authors = len(author_list)
+        elif isinstance(authors, list):
+            n_authors = len(authors)
+        else:
+            n_authors = 1
+        if n_authors > 0:
+            norm_citations.append(citations / n_authors)
+        else:
+            norm_citations.append(0)
+    # Sort normalized citations in descending order
+    norm_citations.sort(reverse=True)
+    # Find the largest h such that sum of top h normalized citations >= h
+    hl_norm = 0
+    for h in range(1, len(norm_citations) + 1):
+        if sum(norm_citations[:h]) >= h:
+            hl_norm = h
+        else:
+            break
+    return hl_norm
+
+import math
+
+def calculate_aw_index(publications, hindex):
+    if hindex == 0:
+        return 0.0
+    # Get top h papers by citations
+    hcore_pubs = sorted(publications, key=lambda x: x.get('num_citations', 0), reverse=True)[:hindex]
+    sum_cit_div_auth = 0.0
+    for pub in hcore_pubs:
+        citations = pub.get('num_citations', 0)
+        authors = pub.get('bib', {}).get('author', '')
+        if isinstance(authors, str):
+            author_list = [a.strip() for a in authors.split(' and ') if a.strip()]
+            n_authors = len(author_list)
+        elif isinstance(authors, list):
+            n_authors = len(authors)
+        else:
+            n_authors = 1
+        if n_authors > 0:
+            sum_cit_div_auth += citations / n_authors
+    return round(math.sqrt(sum_cit_div_auth), 2) if sum_cit_div_auth > 0 else 0.0
+
+def calculate_hm_index(publications):
+    # Sort publications by citations descending
+    sorted_pubs = sorted(publications, key=lambda x: x.get('num_citations', 0), reverse=True)
+    fractional_sum = 0.0
+    hm_index = 0
+    for i, pub in enumerate(sorted_pubs):
+        authors = pub.get('bib', {}).get('author', '')
+        if isinstance(authors, str):
+            author_list = [a.strip() for a in authors.split(' and ') if a.strip()]
+            n_authors = len(author_list)
+        elif isinstance(authors, list):
+            n_authors = len(authors)
+        else:
+            n_authors = 1
+        if n_authors > 0:
+            fractional_sum += 1 / n_authors
+        if fractional_sum >= i + 1:
+            hm_index = i + 1
+        else:
+            break
+    return hm_index
+
+# Loop through all the files in the folder
 for filename in os.listdir(folder_path):
-    h_core = 0
-    num_citations = []
     data = {}
-
     if filename.endswith(".json"):
-        with open(os.path.join(folder_path, filename), encoding='utf-8') as f:
+        with open(os.path.join(folder_path, filename)) as f:
             try:
                 file_data = json.load(f)
+                publications = file_data.get('publications', [])
+                cites_per_year = file_data.get('cites_per_year', {})
 
                 data['author_name'] = file_data.get('name', 'N/A')
                 data['author_id'] = file_data.get('scholar_id', 'N/A')
                 data['author_affiliation'] = file_data.get('affiliation', 'N/A')
 
-                first_publication = None
-                first_pub_year = None
+                # First publication and year
+                first_publication, first_pub_year = get_first_publication(publications, cites_per_year)
+                data['first_publication'] = first_publication
+                data['first_pb_year'] = first_pub_year
 
-                for publication in file_data.get('publications', []):
-                    pub_year = publication.get('bib', {}).get('pub_year')
-                    try:
-                        pub_year = int(pub_year)
-                        if 1900 <= pub_year <= current_year:
-                            if first_pub_year is None or pub_year < first_pub_year:
-                                first_pub_year = pub_year
-                                first_publication = publication.get('bib', {}).get('title', 'N/A')
-                    except (ValueError, TypeError):
-                        continue
+                data['citations'] = int(file_data.get('citedby', 0))
+                data['hindex'] = int(file_data.get('hindex', 0))
+                data['i10index'] = int(file_data.get('i10index', 0))
 
-                if first_pub_year is None:
-                    cites_per_year = file_data.get('cites_per_year', {})
-                    if cites_per_year:
-                        first_pub_year = min(int(year) for year in cites_per_year.keys())
-                        first_publication = "Derived from cites_per_year"
+                # H-core
+                data['hcore'] = calculate_hcore(publications, data['hindex'])
+                data['total_pubs'] = len(publications)
 
-                data['first_publication'] = first_publication if first_publication else 'N/A'
-                data['first_pb_year'] = first_pub_year if first_pub_year else 'N/A'
+                # Pi-index and related lists
+                num_citations = get_num_citations(publications, year_limit=2019)
+                pi_index, p_list, cumulative_citations = calculate_pi_index(num_citations, data['hindex'])
+                data['pi'] = pi_index
 
-                publications = file_data.get('publications', [])
-                citations_list = [pub.get('num_citations', 0) for pub in publications]
-                total_publications = len(publications)
-                total_citations = sum(citations_list)
+                # Publication count for all years
+                data['pubs_all_time'] = count_all_publications(publications)
 
-                # Total years since first publication
-                if first_pub_year:
-                    total_years = current_year - int(first_pub_year) + 1
-                else:
-                    total_years = 0
 
-                cites_per_year = total_citations / total_years if total_years > 0 else 0
-                cites_per_paper = total_citations / total_publications if total_publications > 0 else 0
+                # E-index
+                data['eindex'] = calculate_e_index(data['hcore'], data['hindex'])
 
-                total_authors = 0
-                for pub in publications:
-                    n_authors = len(pub.get('bib', {}).get('author', '').split(',')) if pub.get('bib', {}).get('author') else 1
-                    total_authors += n_authors
-                authors_per_paper = total_authors / total_publications if total_publications > 0 else 0
+                # cite_year
+                data['cite_year'] = calculate_cite_year(
+                    data['citations'],
+                    data['first_pb_year'] if data['first_pb_year'] != 'N/A' else current_year,
+                    current_year
+                )
 
-                cites_per_author = 0
-                for pub in publications:
-                    n_authors = len(pub.get('bib', {}).get('author', '').split(',')) if pub.get('bib', {}).get('author') else 1
-                    cites_per_author += pub.get('num_citations', 0) / n_authors
+                #authors_paper
 
-                papers_per_author = 0
-                for pub in publications:
-                    n_authors = len(pub.get('bib', {}).get('author', '').split(',')) if pub.get('bib', {}).get('author') else 1
-                    papers_per_author += 1 / n_authors
+                data['authors_paper'] = calculate_authors_paper(publications)
 
-                # H-index and related metrics
-                hindex = int(file_data.get('hindex', 0))
-                gindex = calculate_g_index(citations_list)
-                hgindex = calculate_hg_index(hindex, gindex)
-                aindex = calculate_a_index(citations_list, hindex)
-                rindex = calculate_r_index(citations_list, hindex)
-                findex = calculate_f_index(citations_list)
-                pindex = calculate_p_index(total_citations, total_publications)
-                # Pi-index (Ψ-Index)
-                num_citations_pi = []
-                for publication in publications:
-                    pub_year = publication.get('bib', {}).get('pub_year')
-                    try:
-                        if pub_year and int(pub_year) <= 2019:
-                            num_citations_pi.append(publication.get('num_citations', 0))
-                    except ValueError:
-                        continue
-                psi_index = calculate_pi_index(num_citations_pi, hindex)
-                kindex = calculate_k_index(total_citations, citations_list, hindex)
-                eindex = calculate_e_index(citations_list, hindex)
-                m_quotient = calculate_m_quotient(hindex, first_pub_year)
-                ar_index = calculate_ar_index(citations_list, hindex, first_pub_year)
-                q2_index = calculate_q2_index(hindex, m_quotient)
-                normalized_h_index = calculate_normalized_h_index(hindex, total_publications)
-                proposed_index = calculate_proposed_index(hindex, gindex, eindex)
-                hm_index = calculate_hm_index(publications)
-                hi_index = calculate_hi_index(publications, hindex)
-                hi_norm = calculate_hi_norm_index(publications, hindex)
-                aw_index = calculate_aw_index(publications)
-                hc_index = sum(sorted(citations_list, reverse=True)[:hindex])
-                hg_iindex = hgindex
+                # cites_paper
+                data['cites_paper'] = calculate_cites_paper(data['citations'], data['total_pubs'])
+                
+                #g_index
+                data['gindex'] = calculate_g_index(publications)
 
-                data['hcore'] = hc_index
 
-                # Save all metrics
-                data['citations'] = total_citations
-                data['hindex'] = hindex
-                data['gindex'] = gindex
-                data['hgindex'] = round(hgindex, 2)
-                data['aindex'] = round(aindex, 2)
-                data['rindex'] = round(rindex, 2)
-                data['findex'] = findex
-                data['pindex'] = round(pindex, 2)
-                data['Ψ-Index'] = psi_index
-                data['kindex'] = round(kindex, 2)
-                data['eindex'] = round(eindex, 2)
-                data['M-quotient'] = round(m_quotient, 3)
-                data['AR-index'] = round(ar_index, 3)
-                data['Q2-Index'] = round(q2_index, 3)
-                data['Normalized h-index'] = round(normalized_h_index, 3)
-                data['Proposed index'] = round(proposed_index, 3)
-                data['hm-index'] = hm_index
-                data['hi-index'] = hi_index
-                data['hi-norm'] = hi_norm
-                data['AW-index'] = aw_index
-                data['hc-index'] = hc_index
-                data['hg-iIndex'] = round(hg_iindex, 2)
-                data['total_publications'] = total_publications
-                data['total_citations'] = total_citations
-                data['total_years'] = total_years
-                data['Cites-Year'] = round(cites_per_year, 2)
-                data['Cites-Paper'] = round(cites_per_paper, 2)
-                data['Authors-Paper'] = round(authors_per_paper, 2)
-                data['cites_per_author'] = round(cites_per_author, 2)
-                data['papers_per_author'] = round(papers_per_author, 2)
-                data['total_pubs'] = total_publications
+                # hg_index
+                data['hg_index'] = calculate_hg_index(data['hindex'], data['gindex'])
+
+                # a_index
+                data['a_index'] = calculate_a_index(data['hcore'], data['hindex'])
+
+                # r_index
+                data['r_index'] = calculate_r_index(data['hcore'])
+
+                # f_index
+                data['f_index'] = calculate_f_index(publications)
+
+                # p_index
+                data['p_index'] = calculate_p_index(data['citations'], data['total_pubs'])
+
+                # k_index
+                data['k_index'] = calculate_k_index(data['citations'], data['total_pubs'], data['hcore'])
+
+                # m_quotient
+                data['m_quotient'] = calculate_m_quotient(
+                    data['hindex'],
+                    data['first_pb_year'] if data['first_pb_year'] != 'N/A' else current_year,
+                    current_year
+                )
+
+                data['ar_index'] = calculate_ar_index(
+                    data['hcore'],
+                    data['first_pb_year'] if data['first_pb_year'] != 'N/A' else current_year,
+                    current_year
+                )
+
+                m_index = calculate_m_index(publications, data['hindex'])
+
+                # q2_index
+                data['q2_index'] = calculate_q2_index(data['hindex'], m_index)
+
+                # Normalized h-index
+                data['normalized_h_index'] = calculate_normalized_h_index(data['hindex'], data['total_pubs'])
+
+                data['proposed_index'] = calculate_proposed_index(
+                    data['hindex'],
+                    data['gindex'],
+                    data['first_pb_year'] if data['first_pb_year'] != 'N/A' else current_year,
+                    current_year
+                )
+
+                # HC-index
+                data['hc_index'] = calculate_hc_index(publications, current_year)
+
+                # Hi-index
+                data['hi_index'] = calculate_hi_index(data['hindex'], data['authors_paper'])
+
+                data['hl_norm'] = calculate_hi_norm(publications)
+
+                data['aw_index'] = calculate_aw_index(publications, data['hindex'])
+
+
+                data['hm_index'] = calculate_hm_index(publications)
+
+
+
 
             except json.JSONDecodeError as e:
                 print(f"Error decoding JSON in file {filename}: {e}")
@@ -307,13 +458,13 @@ for filename in os.listdir(folder_path):
             finally:
                 details.append(data)
 
+# Save the results to a CSV file
 fields = [
     "author_name", "author_id", "author_affiliation", "first_publication", "first_pb_year",
-    "citations", "hindex", "gindex", "hgindex", "aindex", "rindex", "findex", "hcore", "hc-index",
-    "pindex", "Ψ-Index", "kindex", "eindex", "M-quotient", "AR-index", "Q2-Index", "Normalized h-index", "Proposed index",
-    "hm-index", "hi-index", "hi-norm", "AW-index", "hg-iIndex",
-    "total_publications", "total_citations", "total_years", "Cites-Year", "Cites-Paper",
-    "Authors-Paper", "cites_per_author", "papers_per_author", "total_pubs"
+    "citations", "hindex", "gindex", "hg_index", "i10index", "hcore", "eindex", "a_index", "aw_index", "r_index",
+    "f_index", "p_index", "k_index", "m_quotient", "ar_index", "m_index", "q2_index", "normalized_h_index",
+    "proposed_index", "hi_index", "hi_norm", "hl_norm", "hc_index", "hm_index", "total_pubs", "pi", "pubs_all_time",
+    "cite_year", "authors_paper", "cites_paper"
 ]
 
 with open("output_pi.csv", "w", newline="", encoding='utf-8') as csvfile:
