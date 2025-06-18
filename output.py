@@ -58,7 +58,7 @@ def get_num_citations(publications, year_limit=2019):
 # However, the Psi (Ψ) symbol cannot be used as a variable name in most programming languages.
 # Therefore, it is displayed as 'Ψ-Index' in the output CSV for proper symbol representation.
 
-def calculate_py_index(num_citations, h_index):
+def calculate_psi_index(num_citations, h_index):
     p_list = []
     cumulative_citations = []
     if not num_citations:
