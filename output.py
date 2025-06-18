@@ -53,7 +53,12 @@ def get_num_citations(publications, year_limit=2019):
             continue
     return num_citations
 
-def calculate_pi_index(num_citations, h_index):
+
+# In the program, this index is internally referred to as psi_index.
+# However, the Psi (Ψ) symbol cannot be used as a variable name in most programming languages.
+# Therefore, it is displayed as 'Ψ-Index' in the output CSV for proper symbol representation.
+
+def calculate_py_index(num_citations, h_index):
     p_list = []
     cumulative_citations = []
     if not num_citations:
@@ -72,10 +77,11 @@ def calculate_pi_index(num_citations, h_index):
     for i in range(len(cumulative_citations)):
         if p_list[i] <= cumulative_citations[i]:
             current_index = i
-    pi_index = current_index + 1
-    if pi_index < h_index:
-        pi_index = h_index
-    return pi_index, p_list, cumulative_citations
+    psi_index = current_index + 1
+    if psi_index < h_index:
+        psi_index = h_index
+    return psi_index, p_list, cumulative_citations
+
 
 def count_all_publications(publications):
     """Returns the total number of publications, regardless of year."""
